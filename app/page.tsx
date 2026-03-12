@@ -10,13 +10,6 @@ const GRADIENTS = [
   { name: "Slate",    value: "linear-gradient(135deg, #334155 0%, #1e293b 50%, #0f172a 100%)", accent: "#1a252f" },
 ];
 
-const FORMAT_OPTIONS = [
-  { id: "card",    label: "Card",    sub: "Free size",   exportW: null,  exportH: null  },
-  { id: "twitter", label: "Twitter", sub: "1200 × 675",  exportW: 1200,  exportH: 675   },
-  { id: "story",   label: "Story",   sub: "1080 × 1920", exportW: 1080,  exportH: 1920  },
-] as const;
-
-type ExportFormat = typeof FORMAT_OPTIONS[number]["id"];
 
 const LORA = "var(--font-lora), Georgia, serif";
 const HIGHLIGHT_COLOR = "#fef9c3";
@@ -44,7 +37,6 @@ export default function Home() {
   const [tweet, setTweet]             = useState<TweetData | null>(null);
   const [gradient, setGradient]       = useState(GRADIENTS[0]);
   const [source, setSource]           = useState("");
-  const [exportFormat, setExportFormat] = useState<ExportFormat>("card");
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState("");
   const [exporting, setExporting]     = useState(false);
@@ -72,19 +64,14 @@ export default function Home() {
 
   const getDataUrl = useCallback(async () => {
     if (!canvasRef.current) return null;
-    const fmt = FORMAT_OPTIONS.find((f) => f.id === exportFormat)!;
-    if (fmt.exportW && fmt.exportH) {
-      const padding = exportFormat === "story" ? "140px 100px" : "56px 48px";
-      return toPng(canvasRef.current, {
-        width: fmt.exportW,
-        height: fmt.exportH,
-        pixelRatio: 1,
-        cacheBust: true,
-        style: { borderRadius: "0px", padding },
-      });
-    }
-    return toPng(canvasRef.current, { pixelRatio: 3, cacheBust: true });
-  }, [exportFormat]);
+    return toPng(canvasRef.current, {
+      width: 1200,
+      height: 675,
+      pixelRatio: 1,
+      cacheBust: true,
+      style: { borderRadius: "0px" },
+    });
+  }, []);
 
   const download = useCallback(async () => {
     setExporting(true);
@@ -93,12 +80,12 @@ export default function Home() {
       if (!url) return;
       const a = document.createElement("a");
       a.href = url;
-      a.download = `bss-${exportFormat}-${Date.now()}.png`;
+      a.download = `bss-${Date.now()}.png`;
       a.click();
     } finally {
       setExporting(false);
     }
-  }, [getDataUrl, exportFormat]);
+  }, [getDataUrl]);
 
   const copyImage = useCallback(async () => {
     setExporting(true);
@@ -117,13 +104,6 @@ export default function Home() {
 
   const hasContent = mode === "text" ? text.trim().length > 0 : tweet !== null;
 
-  // Canvas styles per format
-  const canvasStyle: React.CSSProperties =
-    exportFormat === "story"
-      ? { height: 540, width: "auto", aspectRatio: "1080/1920", borderRadius: 20, flexShrink: 0 }
-      : exportFormat === "twitter"
-      ? { width: "100%", aspectRatio: "1200/675", borderRadius: 20 }
-      : { width: "100%", borderRadius: 24 };
 
   return (
     <div
@@ -280,32 +260,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Export format */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "#666", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              Export Format
-            </label>
-            <div style={{ display: "flex", gap: 6 }}>
-              {FORMAT_OPTIONS.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => setExportFormat(f.id)}
-                  style={{
-                    flex: 1, padding: "10px 4px", borderRadius: 10,
-                    border: exportFormat === f.id ? "2px solid #111" : "1.5px solid #d1d1d8",
-                    cursor: "pointer",
-                    background: exportFormat === f.id ? "#111" : "#fff",
-                    color: exportFormat === f.id ? "#fff" : "#111",
-                    display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                  }}
-                >
-                  <span style={{ fontSize: 13, fontWeight: 700 }}>{f.label}</span>
-                  <span style={{ fontSize: 10, opacity: 0.6, fontWeight: 400 }}>{f.sub}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Actions */}
           {hasContent && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
@@ -353,12 +307,14 @@ export default function Home() {
               ref={canvasRef}
               style={{
                 background: gradient.value,
+                borderRadius: 24,
                 padding: "56px 48px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                width: "100%",
+                aspectRatio: "1200/675",
                 boxSizing: "border-box",
-                ...canvasStyle,
               }}
             >
               {mode === "text" ? (
